@@ -1,5 +1,7 @@
 # @invariantcontinuum/graph Scenario Lab
 
+Live at **https://invariantcontinuum.github.io/showcase/** — redeployed automatically on every push and on every `@invariantcontinuum/graph` release (via a `graph-release` repository dispatch from [invariantcontinuum/graph](https://github.com/invariantcontinuum/graph)).
+
 This is the GitHub Pages scenario lab for `@invariantcontinuum/graph`. It demonstrates practical graph data instead of abstract showcase samples: a small Git repository, a Slack incident thread, Confluence documentation, a Jira sprint board, and correlated service logs.
 
 The UI keeps the graph canvas as the primary surface and uses a responsive side panel for scenarios, layouts, modern light/dark theme profiles, generated node and edge mutations, selection inspection, and direct JSON editing. Clicking a node opens a details modal backed by the package's full `NodeData` click payload.
