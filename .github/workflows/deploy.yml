@@ -1,0 +1,80 @@
+name: Deploy Showcase to Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+  repository_dispatch:
+    types: [graph-release]
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node with GitHub Packages
+        uses: invariantcontinuum/actions-library/setup-node-gh-packages@main
+        with:
+          token: ${{ secrets.GH_PAT || secrets.GITHUB_TOKEN }}
+          cache-dependency-path: package-lock.json
+
+      - name: Bump @invariantcontinuum/graph to released version
+        if: github.event_name == 'repository_dispatch'
+        env:
+          VERSION: ${{ github.event.client_payload.version }}
+        run: |
+          set -euo pipefail
+          if [ -z "$VERSION" ]; then
+            echo "graph-release dispatch missing client_payload.version" >&2
+            exit 1
+          fi
+          CURRENT="$(node -p "require('./package.json').dependencies['@invariantcontinuum/graph']")"
+          if [ "$CURRENT" = "$VERSION" ]; then
+            echo "Already pinned to $VERSION; skipping bump commit"
+            exit 0
+          fi
+          npm pkg set "dependencies.@invariantcontinuum/graph=$VERSION"
+          npm install --package-lock-only
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: bump @invariantcontinuum/graph to $VERSION"
+          git push origin main
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build site
+        run: npm run build
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

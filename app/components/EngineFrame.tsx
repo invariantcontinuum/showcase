@@ -162,6 +162,7 @@ export const EngineFrame = forwardRef<GraphHandle | null, EngineFrameProps>(
         {mount ? (
           <GraphScene
             ref={attachHandle}
+            wasmBasePath={process.env.NEXT_PUBLIC_BASE_PATH}
             snapshot={snapshot}
             themeMode={themeMode}
             themeOverrides={themeOverrides}

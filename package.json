@@ -1,5 +1,5 @@
 {
-  "name": "site",
+  "name": "showcase",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -27,5 +27,9 @@
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/invariantcontinuum/showcase.git"
   }
 }
