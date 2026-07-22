@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type {
-  GraphHandle,
-  GraphStats,
-  LayoutType,
-  NodeData,
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  NodeDetailsPanel,
+  type GraphHandle,
+  type GraphStats,
+  type LayoutType,
+  type NodeData,
 } from "@invariantcontinuum/graph/react";
 import { SCENARIOS, scenarioBySlug } from "../scenarios";
 import { EngineFrame } from "./EngineFrame";
@@ -53,14 +54,6 @@ export function Playground() {
   const onNodeClick = useCallback((node: NodeData | null) => {
     setSelected(node);
     if (node) graphRef.current?.panToNode(node.id);
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSelected(null);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
   }, []);
 
   return (
@@ -112,6 +105,13 @@ export function Playground() {
             <span className="canvas-hint" aria-hidden="true">
               click a node to spotlight its neighborhood
             </span>
+            <NodeDetailsPanel
+              node={selected}
+              edges={scenario.snapshot.edges}
+              nodes={scenario.snapshot.nodes}
+              onClose={clearSelection}
+              onNeighborClick={onNodeClick}
+            />
           </EngineFrame>
           <div className="pg-controls">
             <div
@@ -160,20 +160,11 @@ export function Playground() {
           </div>
           <div className="pg-selection" aria-live="polite">
             {selected ? (
-              <>
-                <span className="pg-selected-name">{selected.name}</span>
-                <span className="pg-selected-meta">
-                  type {selected.type}, {selectedEdges.length} connection
-                  {selectedEdges.length === 1 ? "" : "s"}
-                </span>
-                <button
-                  type="button"
-                  onClick={clearSelection}
-                  aria-keyshortcuts="Escape"
-                >
-                  Clear
-                </button>
-              </>
+              <span className="pg-selected-meta">
+                {selected.name}: {selectedEdges.length} connection
+                {selectedEdges.length === 1 ? "" : "s"} — details in the panel,
+                Escape clears.
+              </span>
             ) : (
               <span className="pg-selected-meta">
                 Nothing selected. Click any node; Escape clears.

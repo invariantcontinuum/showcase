@@ -1,13 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import type { GraphSnapshot } from "@invariantcontinuum/graph/react";
+import {
+  NodeDetailsPanel,
+  type GraphSnapshot,
+  type NodeData,
+} from "@invariantcontinuum/graph/react";
 import { generateScale } from "../lib/generate";
 import { useInView } from "../lib/useInView";
 import { EngineFrame } from "./EngineFrame";
 import { Reveal } from "./Reveal";
 
-const SIZES = [1000, 5000, 10000, 20000] as const;
+const SIZES = [1000, 5000, 10000, 20000, 50000, 100000] as const;
 type Size = (typeof SIZES)[number];
 const LABEL_LIMIT = 2000;
 const EMPTY_LABELS: Record<string, string> = {};
@@ -28,6 +32,7 @@ export function ScaleDemo() {
   const [gen, setGen] = useState<Generated | null>(null);
   const [settleMs, setSettleMs] = useState<number | null>(null);
   const [fps, setFps] = useState<number | null>(null);
+  const [selected, setSelected] = useState<NodeData | null>(null);
   const [sectionRef, inView] = useInView<HTMLElement>("0px");
 
   // The initial dataset is generated off the critical path, after mount, so
@@ -46,11 +51,18 @@ export function ScaleDemo() {
   const pickSize = useCallback((size: Size) => {
     setGen(generate(size));
     setSettleMs(null);
+    setSelected(null);
   }, []);
 
   const onSettled = useCallback((ms: number) => {
     setSettleMs(ms);
   }, []);
+
+  const onNodeClick = useCallback((node: NodeData | null) => {
+    setSelected(node);
+  }, []);
+
+  const clearSelection = useCallback(() => setSelected(null), []);
 
   // Honest main-thread FPS meter: counts real animation frames while the
   // section is on screen. Stops off-screen and under reduced motion.
@@ -138,15 +150,29 @@ export function ScaleDemo() {
             snapshot={gen.snapshot}
             labels={labelsOff ? EMPTY_LABELS : undefined}
             onSettled={onSettled}
-            ariaLabel={`Stress test: ${gen.size.toLocaleString("en-US")} generated nodes in a clustered network`}
+            onNodeClick={onNodeClick}
+            onBackgroundClick={clearSelection}
+            ariaLabel={`Stress test: ${gen.size.toLocaleString("en-US")} generated nodes in a clustered network. Click a node to inspect its details.`}
             fitPadding={32}
             className="scale-frame"
           >
             {labelsOff ? (
               <span className="canvas-hint" aria-hidden="true">
                 labels hidden above {LABEL_LIMIT.toLocaleString("en-US")} nodes
+                — click any node to inspect it
               </span>
-            ) : null}
+            ) : (
+              <span className="canvas-hint" aria-hidden="true">
+                click any node to inspect it
+              </span>
+            )}
+            <NodeDetailsPanel
+              node={selected}
+              edges={gen.snapshot.edges}
+              nodes={gen.snapshot.nodes}
+              onClose={clearSelection}
+              onNeighborClick={setSelected}
+            />
           </EngineFrame>
         ) : (
           <div className="engine-frame scale-frame" aria-hidden="true">

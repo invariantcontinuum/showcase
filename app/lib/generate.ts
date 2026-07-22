@@ -114,7 +114,7 @@ export function generateHero(): GraphSnapshot {
 }
 
 /* ------------------------------------------------------------------ */
-/* Scale stress test: clustered graphs from 1k to 20k nodes.          */
+/* Scale stress test: clustered graphs from 1k to 100k nodes.         */
 /* ------------------------------------------------------------------ */
 
 export function generateScale(nodeCount: number): GraphSnapshot {
@@ -123,6 +123,7 @@ export function generateScale(nodeCount: number): GraphSnapshot {
   const clusters = Math.max(8, Math.round(nodeCount / 320));
   const nodes: NodeSeed[] = new Array(nodeCount);
   const edges: EdgeSeed[] = [];
+  const degree = new Uint32Array(nodeCount);
   const clusterMembers: number[][] = Array.from({ length: clusters }, () => []);
 
   for (let i = 0; i < nodeCount; i++) {
@@ -136,26 +137,36 @@ export function generateScale(nodeCount: number): GraphSnapshot {
       community: c,
     };
   }
+  const link = (source: number, target: number, type: string) => {
+    edges.push({ source: `s${source}`, target: `s${target}`, type });
+    degree[source] += 1;
+    degree[target] += 1;
+  };
   for (let c = 0; c < clusters; c++) {
     const members = clusterMembers[c];
     for (let j = 1; j < members.length; j++) {
       // Preferential attachment: earlier members accumulate degree.
       const t = members[Math.floor(Math.pow(rng(), 2.2) * j)];
-      edges.push({ source: `s${members[j]}`, target: `s${t}`, type: "depends" });
+      link(members[j], t, "depends");
       if (rng() < 0.25) {
         const t2 = members[Math.floor(Math.pow(rng(), 2.2) * j)];
-        edges.push({ source: `s${members[j]}`, target: `s${t2}`, type: "why" });
+        link(members[j], t2, "why");
       }
     }
     // A few long-range bridges per cluster.
     for (let k = 0; k < 4; k++) {
       const other = clusterMembers[int(rng, 0, clusters - 1)];
-      edges.push({
-        source: `s${pick(rng, members)}`,
-        target: `s${pick(rng, other)}`,
-        type: "drift",
-      });
+      link(pick(rng, members), pick(rng, other), "drift");
     }
+  }
+  // Attach per-node details once degrees are known so the click-inspect
+  // panel has real attributes to show at every stress-test size.
+  for (let i = 0; i < nodeCount; i++) {
+    nodes[i].meta = {
+      degree: degree[i],
+      cluster: nodes[i].community,
+      seed: 97 + nodeCount,
+    };
   }
   return snap(nodes, edges);
 }
